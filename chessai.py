@@ -1,7 +1,8 @@
 import chess
 import chess.polyglot
+from chess.polyglot import MemoryMappedReader
 board = chess.Board()
-
+#legal_moves = board.legal_moves
 pawntable = [
     0, 0, 0, 0, 0, 0, 0, 0,
     5, 10, 10, -20, -20, 10, 10, 5,
@@ -73,9 +74,11 @@ def player(board):
 
 # returns list of total moves as uci values
 def actions(board):
+    legal_moves = board.legal_moves
     total_actions = []
-    for move in board.legal_moves:
-        total_actions.append(move)
+    total_actions = [mov for mov in legal_moves]
+    # for move in board.legal_moves:
+    #     total_actions.append(move)
     return total_actions
 
 def result(board, action):
@@ -84,7 +87,6 @@ def result(board, action):
     return new_board
 
 def evaluation(board):
-    
     # checks if game is over and returns massive score
     if board.is_checkmate():
         if board.turn:
@@ -151,8 +153,9 @@ def evaluation(board):
 
 def minimax(board, depth):
     try:
-        move = chess.polyglot.MemoryMappedReader(r"C:\Users\trist\repos\Chess-World\books\human.bin").weighted_choice(board).move
+        move = chess.polyglot.MemoryMappedReader(r"/Users/diego_only/repos/chess.com-bot/openings/human.bin").weighted_choice(board).move
         print(move)
+        print(type(move))
         return move
     except:
         global num_actions
@@ -167,10 +170,12 @@ def minimax(board, depth):
         action_values = []
         
         if board.turn:
-            for action in total_actions:
-                action_values.append((action, min_value(result(board, action), depth, alpha, beta)))
+            action_values = [(action, min_value(result(board, action), depth, alpha, beta)) for action in total_actions]
+            # for action in total_actions:
+            #     action_values.append((action, min_value(result(board, action), depth, alpha, beta)))
             print(action_values)
             curr_max = action_values[0]
+            # curr_max = [action for action in action_values[1:] if action[-1] > curr_max[-1]]
             for action in action_values[1:]:
                 if action[-1] > curr_max[-1]:
                     curr_max = action
@@ -180,10 +185,12 @@ def minimax(board, depth):
             return curr_max[0]
 
         else:
-            for action in total_actions:
-                action_values.append((action, max_value(result(board, action), depth, alpha, beta)))
+            action_values = [(action, max_value(result(board, action), depth, alpha, beta)) for action in total_actions]
+            # for action in total_actions:
+            #     action_values.append((action, max_value(result(board, action), depth, alpha, beta)))
             print(action_values)
             curr_min = action_values[0]
+            # curr_min = [action for action in action_values[1:] if action[-1] < curr_min[-1]]
             for action in action_values[1:]:
                 if action[-1] < curr_min[-1]:
                     curr_min = action
@@ -200,9 +207,9 @@ def max_value(board, depth, alpha, beta, depth_set=False):
     for action in actions(board):
         # print(action)
         num_actions += 1
-        if board.is_capture(action) and depth_set == False:
-            depth = 2
-            depth_set = True
+        # if board.is_capture(action) and depth_set == False:
+        #     depth = 2
+        #     depth_set = True
         alpha = max(alpha, min_value(result(board, action), depth-1, alpha, beta, depth_set))
         # depth_set = False
         if beta <= alpha:
@@ -216,9 +223,9 @@ def min_value(board, depth, alpha, beta, depth_set=False):
     for action in actions(board):
     #     print(action)
         num_actions += 1
-        if board.is_capture(action) and depth_set == False:
-            depth = 2
-            depth_set = True
+        # if board.is_capture(action) and depth_set == False:
+        #     depth = 2
+        #     depth_set = True
         beta = min(beta, max_value(result(board, action), depth-1, alpha, beta, depth_set))
         # depth_set = False
         if beta <= alpha:

@@ -61,6 +61,13 @@ search.click()
 driver.implicitly_wait(20)
 move_num = 0
 last_move = 0
+playing_robot = input('Playing robot?')
+if playing_robot == 'y':
+    moves = '[@id="board-layout-sidebar"]/div'
+    moves2 = 'board-vs-personalities'
+else:
+    moves = '[@id="move-list"]'
+    moves2 = 'board-single'
 def moveto(name):
     global move_num
     columns = {'a': 1, 'b': 2, 'c': 3, 'd': 4, 'e': 5, 'f': 6, 'g': 7, 'h': 8}
@@ -88,15 +95,15 @@ def moveto(name):
     end_location = str(columns[end_location[0]]) + end_location[1]
     start_location = str(columns[start_location[0]]) + start_location[1]
     print(start_location, end_location)
-    search = driver.find_element(By.XPATH, value = f'//*[@id="board-vs-personalities"]/div[@class=\'piece w{piece} square-{start_location}\']')
+    search = driver.find_element(By.XPATH, value = f'//*[@id="{moves2}"]/div[@class=\'piece w{piece} square-{start_location}\']')
     search.click()
     if not is_capture:
-        search = driver.find_element(By.XPATH, value = f'//*[@id="board-vs-personalities"]/div[@class=\'hint square-{end_location}\']')
+        search = driver.find_element(By.XPATH, value = f'//*[@id="{moves2}"]/div[@class=\'hint square-{end_location}\']')
     else:
         try:
-            search = driver.find_element(By.XPATH, value = f'//*[@id="board-vs-personalities"]/div[@class=\'capture-hint square-{end_location}\']')
+            search = driver.find_element(By.XPATH, value = f'//*[@id="{moves2}"]/div[@class=\'capture-hint square-{end_location}\']')
         except:
-            search = driver.find_element(By.XPATH, value = f'//*[@id="board-vs-personalities"]/div[@class=\'hint square-{end_location}\']')
+            search = driver.find_element(By.XPATH, value = f'//*[@id="{moves2}"]/div[@class=\'hint square-{end_location}\']')
     action = webdriver.common.action_chains.ActionChains(driver)
     action.move_to_element_with_offset(search, 0, 0)
     action.click()
@@ -107,13 +114,15 @@ def moveto(name):
     move_num += 1
 
 board = chess.Board()
+#legal_moves = board.legal_moves
 
 from chessai import player, actions, result, evaluation, minimax, max_value, min_value
 
 
 # Getting AI chess color
 while True:
-    ai_color = input("AI Color (w or b): ").lower()
+    #ai_color = input("AI Color (w or b): ").lower()
+    ai_color = 'w'
     if ai_color == "w" or ai_color == "b":
         break
 
@@ -122,10 +131,11 @@ while board.is_checkmate() == False:
     print(board)
     if player(board) == ai_color:
         start_time = time.time()
-        move = minimax(board, 2)
+        move = minimax(board, 3)
         tmp = str(move)
-        is_capture = board.is_capture(move)
+        print(type(move))
         print(tmp)
+        is_capture = board.is_capture(move)
         moveto(tmp)
         board.push(move)
         end_time = time.time()
@@ -133,10 +143,10 @@ while board.is_checkmate() == False:
         print("Time: " + str((total_time)))
     else:
         while True:
-            element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, f'//*[@id="board-layout-sidebar"]/div/vertical-move-list/div[{move_num}]/div[@class=\'black node selected\']'))
+            element = WebDriverWait(driver, 100).until(
+            EC.presence_of_element_located((By.XPATH, f'//*{moves}/vertical-move-list/div[{move_num}]/div[@class=\'black node selected\']'))
             )
-            last_move = driver.find_element(By.XPATH, f'//*[@id="board-layout-sidebar"]/div/vertical-move-list/div[{move_num}]/div[@class=\'black node selected\']')
+            last_move = driver.find_element(By.XPATH, f'//*{moves}/vertical-move-list/div[{move_num}]/div[@class=\'black node selected\']')
             print(last_move.text)
             human_move = last_move.text
             try:
