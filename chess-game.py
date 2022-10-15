@@ -16,7 +16,7 @@ search = driver.find_element(By.XPATH, value='//*[@id="username"]')
 search.send_keys('Dekshunari2')
 
 search = driver.find_element(By.ID, value='password')
-search.send_keys('Dek$hunari057')
+search.send_keys('Chessrobot1')
 search = driver.find_element(By.ID, value = 'login')
 search.click()
 
