@@ -1,0 +1,14 @@
+Chess-Game itself:
+    Prompt whether AI is black or white pieces
+    While there isn't a checkmate:
+        Current player moves:
+            Use board.turn to check whose turn it is:
+                True for white pieces
+                False for black pieces
+            If the player is human:
+                Prompt for input in terminal for where to move
+            If the player is ai:
+                Use determine move function to find the move
+                Perform that move 
+        Change player to next player
+        
