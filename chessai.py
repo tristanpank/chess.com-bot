@@ -1,7 +1,9 @@
 import chess
 import chess.polyglot
 from chess.polyglot import MemoryMappedReader
-board = chess.Board()
+from chess import Board
+board = Board()
+
 #legal_moves = board.legal_moves
 pawntable = [
     0, 0, 0, 0, 0, 0, 0, 0,
@@ -150,15 +152,21 @@ def evaluation(board):
     #     return -score
 
     return score
-
+curr_board = 0
+curr_depth = 0
 def minimax(board, depth):
+    global curr_board
+    global curr_depth
+    curr_board = board
+    curr_depth = depth
+    global num_actions
     try:
         move = chess.polyglot.MemoryMappedReader(r"/Users/diego_only/repos/chess.com-bot/openings/human.bin").weighted_choice(board).move
         print(move)
         print(type(move))
+        num_actions = 0
         return move
     except:
-        global num_actions
         num_actions = 0
         if depth == 0:
             return
@@ -181,7 +189,6 @@ def minimax(board, depth):
                     curr_max = action
             print()
             print(curr_max)
-            print(f"Moves Searched: {num_actions}")
             return curr_max[0]
 
         else:
@@ -201,9 +208,23 @@ def minimax(board, depth):
 
 def max_value(board, depth, alpha, beta, depth_set=False):
     global num_actions
+    if depth < 0:
+        return 0
     if depth == 0:
         score = evaluation(board)
-        return evaluation(board)
+        if score >= 9999:
+            score2 = evaluation(result(curr_board, minimax(curr_board, curr_depth - 1)))
+            if score2 >= 9999:
+                if curr_depth > 2:
+                    score3 = minimax(curr_board, curr_depth - 2)
+                    if score3 >= 9999:
+                        return score3
+                    else:
+                        return score2
+                return score2
+            else:
+                return score
+        return score
     for action in actions(board):
         # print(action)
         num_actions += 1
@@ -218,8 +239,28 @@ def max_value(board, depth, alpha, beta, depth_set=False):
 
 def min_value(board, depth, alpha, beta, depth_set=False):
     global num_actions
+    if depth < 0:
+        return 0
     if depth == 0:
-        return evaluation(board)
+        score = evaluation(board)
+        if curr_depth > 2:
+            if score >= 9999:
+                score2 = evaluation(result(curr_board, minimax(curr_board, curr_depth - 1)))
+                if score2 >= 9999:
+                    if curr_depth > 2:
+                        score3 = evaluation(result(curr_board, minimax(curr_board, curr_depth - 2)))
+                        if score3 >= 9999:
+                            score4 = evaluation(result(curr_board, minimax(curr_board, curr_depth - 3)))
+                            if score4 >= 9999:
+                                return score4
+                            else:
+                                return score3
+                        else:
+                            return score2
+                    return score2
+                else:
+                    return score
+        return score
     for action in actions(board):
     #     print(action)
         num_actions += 1

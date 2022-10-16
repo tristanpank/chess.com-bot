@@ -1,5 +1,6 @@
 import chess
 import time
+import math
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
@@ -95,7 +96,10 @@ def moveto(name):
     end_location = str(columns[end_location[0]]) + end_location[1]
     start_location = str(columns[start_location[0]]) + start_location[1]
     print(start_location, end_location)
-    search = driver.find_element(By.XPATH, value = f'//*[@id="{moves2}"]/div[@class=\'piece w{piece} square-{start_location}\']')
+    try:
+        search = driver.find_element(By.XPATH, value = f'//*[@id="{moves2}"]/div[@class=\'piece w{piece} square-{start_location}\']')
+    except: 
+        search = driver.find_element(By.XPATH, value = f'//*[@id="{moves2}"]/div[@class=\'piece square-{start_location} w{piece}\']')
     search.click()
     if not is_capture:
         search = driver.find_element(By.XPATH, value = f'//*[@id="{moves2}"]/div[@class=\'hint square-{end_location}\']')
@@ -115,9 +119,11 @@ def moveto(name):
 
 board = chess.Board()
 #legal_moves = board.legal_moves
-
-from chessai import player, actions, result, evaluation, minimax, max_value, min_value
-
+import chessai
+from chessai import player, actions, result, evaluation, minimax, max_value, min_value, num_actions
+best_speed = 0
+worst_speed = 99999999
+game_time = 0
 
 # Getting AI chess color
 while True:
@@ -140,7 +146,18 @@ while board.is_checkmate() == False:
         board.push(move)
         end_time = time.time()
         total_time = round(end_time - start_time, 2)
+        game_time += total_time
+        print(f"Moves Searched: {chessai.num_actions}")
         print("Time: " + str((total_time)))
+        if chessai.num_actions > 0:
+            speed = chessai.num_actions / total_time
+            if speed > best_speed:
+                best_speed = speed
+            if speed < worst_speed:
+                worst_speed = speed
+            print(f'{speed} moves per second!')
+            print(f'Best: {best_speed}')
+            print(f'Worst: {worst_speed}')
     else:
         while True:
             element = WebDriverWait(driver, 100).until(
@@ -157,5 +174,6 @@ while board.is_checkmate() == False:
 
 print("Checkmate")
 print(board)
+print(f'Total time thinking: {math.floor(game_time / 60)} mins {round(game_time - 60 * math.floor(game_time / 60))} secs.')
 input('Press Enter to Quit')
 driver.quit()
