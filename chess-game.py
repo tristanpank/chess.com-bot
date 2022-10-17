@@ -63,6 +63,7 @@ driver.implicitly_wait(20)
 move_num = 0
 last_move = 0
 playing_robot = input('Playing robot?')
+deep = input('Depth: ')
 if playing_robot == 'y':
     moves = '[@id="board-layout-sidebar"]/div'
     moves2 = 'board-vs-personalities'
@@ -118,9 +119,8 @@ def moveto(name):
     move_num += 1
 
 board = chess.Board()
-#legal_moves = board.legal_moves
 import chessai
-from chessai import player, actions, result, evaluation, minimax, max_value, min_value, num_actions
+from chessai import player, minimax
 best_speed = 0
 worst_speed = 99999999
 game_time = 0
@@ -137,7 +137,7 @@ while board.is_checkmate() == False:
     print(board)
     if player(board) == ai_color:
         start_time = time.time()
-        move = minimax(board, 3)
+        move = minimax(board, deep)
         tmp = str(move)
         print(type(move))
         print(tmp)
