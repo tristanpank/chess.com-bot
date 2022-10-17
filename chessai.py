@@ -65,7 +65,7 @@ kingstable = [
     -30, -40, -40, -50, -50, -40, -40, -30]
 
 num_actions = 0
-
+action_values = []
 def player(board):
     if board.turn == False:
         return "b"
@@ -85,15 +85,17 @@ def result(board, action):
 
 # checks if game is over and returns massive score
 def evaluation(board):
-    if board.is_checkmate():
+    if board.is_stalemate():
+        return 0
+    elif board.is_insufficient_material():
+        return 0
+    elif board.is_checkmate():
         if board.turn:
             return -9999
         else:
             return 9999
-    elif board.is_stalemate():
-        return 0
-    elif board.is_insufficient_material():
-        return 0
+    
+    
     
     # calculates total number of each piece
     wp = len(board.pieces(chess.PAWN, chess.WHITE))
@@ -152,7 +154,7 @@ def minimax(board, depth):
     curr_depth = depth
     global num_actions
     try:
-        move = chess.polyglot.MemoryMappedReader(r"/Users/trist/repos/chess.com-bot/openings/human.bin").weighted_choice(board).move
+        move = chess.polyglot.MemoryMappedReader(r"/Users/diego_only/repos/chess.com-bot/openings/human.bin").weighted_choice(board).move
         print(move)
         print(type(move))
         num_actions = 0
@@ -186,6 +188,10 @@ def minimax(board, depth):
             actions2.append(q)
             actions3.append(q)
             actions4.append(q)
+            actions1.append(curr_depth)
+            actions2.append(curr_depth)
+            actions3.append(curr_depth)
+            actions4.append(curr_depth)
             p1 = multiprocessing.Process(target=perform_minimax, args=actions1)
             p2 = multiprocessing.Process(target=perform_minimax, args=actions2)
             p3 = multiprocessing.Process(target=perform_minimax, args=actions3)
@@ -199,8 +205,18 @@ def minimax(board, depth):
             p2.join()
             p3.join()
             p4.join()
+            p1.terminate()
+            p2.terminate()
+            p3.terminate()
+            p4.terminate()
             # action_values = [(action, min_value(result(board, action), depth, alpha, beta)) for action in total_actions]
+            #print(q.qsize())
             action_values = q.get()
+            action_values += q.get()
+            action_values += q.get()
+            action_values += q.get()
+            #print(q.qsize())
+            print(action_values)
             curr_max = action_values[0]
             for action in action_values[1:]:
                 if action[-1] > curr_max[-1]:
@@ -209,7 +225,35 @@ def minimax(board, depth):
             print(curr_max)
             return curr_max[0]
         else:
-            action_values = [(action, max_value(result(board, action), depth, alpha, beta)) for action in total_actions]
+            q = multiprocessing.Queue()
+            actions1.append(q)
+            actions2.append(q)
+            actions3.append(q)
+            actions4.append(q)
+            actions1.append(curr_depth)
+            actions2.append(curr_depth)
+            actions3.append(curr_depth)
+            actions4.append(curr_depth)
+            p1 = multiprocessing.Process(target=perform_minimax, args=actions1)
+            p2 = multiprocessing.Process(target=perform_minimax, args=actions2)
+            p3 = multiprocessing.Process(target=perform_minimax, args=actions3)
+            p4 = multiprocessing.Process(target=perform_minimax, args=actions4)
+
+            p1.start()
+            p2.start()
+            p3.start()
+            p4.start()
+            p1.join()
+            p2.join()
+            p3.join()
+            p4.join()
+            #action_values = [(action, max_value(result(board, action), depth, alpha, beta)) for action in total_actions]
+            #print(q.qsize())
+            action_values = q.get()
+            action_values += q.get()
+            action_values += q.get()
+            action_values += q.get()
+            #print(q.qsize())
             print(action_values)
             curr_min = action_values[0]
             for action in action_values[1:]:
@@ -221,9 +265,9 @@ def minimax(board, depth):
             return curr_min[0]
 
 def perform_minimax(*actions):
-    global action_values
     global num_actions
     action_list = [action for action in actions]
+    curr_depth = action_list.pop()
     q = action_list.pop()
     board = action_list.pop()
     # print(actions)
@@ -231,7 +275,7 @@ def perform_minimax(*actions):
     alpha = -10000
     beta = 10000
     for action in action_list:
-        curr_action = (action, min_value(result(board, action), 3, alpha, beta, action))
+        curr_action = (action, min_value(result(board, action), curr_depth, alpha, beta))
         # print(curr_action)
         action_values.append(curr_action)
     q.put(action_values)

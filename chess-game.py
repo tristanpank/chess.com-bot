@@ -1,20 +1,21 @@
-import chess
-import time
-import math
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-import multiprocessing
-from chessai import player, actions, result, evaluation, minimax, max_value, min_value, perform_minimax
 
 driver = ""
-
 def main():
+    import chess
+    import time
+    import math
+    from selenium import webdriver
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.chrome.service import Service
+    from selenium.webdriver.common.keys import Keys
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    import multiprocessing
+    from chessai import player, actions, result, evaluation, minimax, max_value, min_value, perform_minimax, board
+    global is_capture
     global driver
-    s = Service("C:/Users/trist/anaconda3/chromedriver")
+    global moves2
+    s = Service("/usr/local/bin/chromedriver")
 
     driver = webdriver.Chrome(service = s)
 
@@ -76,7 +77,6 @@ def main():
     else:
         moves = '[@id="move-list"]'
         moves2 = 'board-single'
-    board = chess.Board()
     best_speed = 0
     worst_speed = 99999999
     game_time = 0
@@ -93,29 +93,28 @@ def main():
         print(board)
         if player(board) == ai_color:
             start_time = time.time()
-
             move = minimax(board, deep)
-
+            end_time = time.time()
             tmp = str(move)
             print(type(move))
             print(tmp)
             is_capture = board.is_capture(move)
             move_num = moveto(tmp, move_num)
             board.push(move)
-            end_time = time.time()
             total_time = round(end_time - start_time, 2)
             game_time += total_time
-            # print(f"Moves Searched: {chessai.num_actions}")
+            approx_moves = board.legal_moves.count() ** (deep + 1)
+            print(f"Approx Moves Searched: {approx_moves}")
             print("Time: " + str((total_time)))
-            # if chessai.num_actions > 0:
-            #     speed = chessai.num_actions / total_time
-            #     if speed > best_speed:
-            #         best_speed = speed
-            #     if speed < worst_speed:
-            #         worst_speed = speed
-            #     print(f'{speed} moves per second!')
-            #     print(f'Best: {best_speed}')
-            #     print(f'Worst: {worst_speed}')
+            if approx_moves > 0:
+                speed = approx_moves / total_time
+                if 100000 > speed > best_speed:
+                    best_speed = speed
+                if speed < worst_speed:
+                    worst_speed = speed
+                print(f'{speed} moves per second!')
+                print(f'Best: {best_speed}')
+                print(f'Worst: {worst_speed}')
         else:
             while True:
                 element = WebDriverWait(driver, 100).until(
@@ -139,6 +138,18 @@ def main():
     driver.quit()
 
 def moveto(name, move_num):
+    import chess
+    import time
+    import math
+    from selenium import webdriver
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.chrome.service import Service
+    from selenium.webdriver.common.keys import Keys
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    import multiprocessing
+    from chessai import player, actions, result, evaluation, minimax, max_value, min_value, perform_minimax, board
+    global is_capture
     columns = {'a': 1, 'b': 2, 'c': 3, 'd': 4, 'e': 5, 'f': 6, 'g': 7, 'h': 8}
     if name[-1] == 'q':
         promote = True
@@ -186,3 +197,5 @@ def moveto(name, move_num):
     move_num += 1
     return move_num
 
+if __name__ == '__main__':
+    main()
