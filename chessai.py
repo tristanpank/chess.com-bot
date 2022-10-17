@@ -1,7 +1,9 @@
 import chess
 import chess.polyglot
-board = chess.Board()
+from chess import Board
+import multiprocessing
 
+board = Board()
 pawntable = [
     0, 0, 0, 0, 0, 0, 0, 0,
     5, 10, 10, -20, -20, 10, 10, 5,
@@ -70,8 +72,6 @@ def player(board):
     elif board.turn == True:
         return "w"
 
-
-# returns list of total moves as uci values
 def actions(board):
     total_actions = []
     for move in board.legal_moves:
@@ -83,9 +83,8 @@ def result(board, action):
     new_board.push(action)
     return new_board
 
+# checks if game is over and returns massive score
 def evaluation(board):
-    
-    # checks if game is over and returns massive score
     if board.is_checkmate():
         if board.turn:
             return -9999
@@ -142,20 +141,23 @@ def evaluation(board):
     # combines total_piece and positional scores
     score = material + pawnsq + knightsq + bishopsq + rooksq + queensq + kingsq
 
-    # if board.turn:
-    #     return score
-    # else:
-    #     return -score
-
     return score
+curr_board = 0
+curr_depth = 0
 
 def minimax(board, depth):
+    global curr_board
+    global curr_depth
+    curr_board = board
+    curr_depth = depth
+    global num_actions
     try:
-        move = chess.polyglot.MemoryMappedReader(r"C:\Users\trist\repos\Chess-World\books\human.bin").weighted_choice(board).move
+        move = chess.polyglot.MemoryMappedReader(r"/Users/trist/repos/chess.com-bot/openings/human.bin").weighted_choice(board).move
         print(move)
+        print(type(move))
+        num_actions = 0
         return move
     except:
-        global num_actions
         num_actions = 0
         if depth == 0:
             return
@@ -163,25 +165,51 @@ def minimax(board, depth):
         beta = 10000
         best_value = -99999
         curr_player = player(board)
-        total_actions = actions(board)
+        total_actions = [mov for mov in board.legal_moves]
         action_values = []
-        
+        num_of_actions = len(total_actions)
+        actions1 = total_actions[:num_of_actions//4]
+        actions1.append(board)
+        actions2 = total_actions[num_of_actions//4:num_of_actions//2]
+        actions2.append(board)
+        actions3 = total_actions[num_of_actions//2:3*num_of_actions//4]
+        actions3.append(board)
+        actions4 = total_actions[3*num_of_actions//4:]
+        actions4.append(board)
+
+
+
+
         if board.turn:
-            for action in total_actions:
-                action_values.append((action, min_value(result(board, action), depth, alpha, beta)))
-            print(action_values)
+            q = multiprocessing.Queue()
+            actions1.append(q)
+            actions2.append(q)
+            actions3.append(q)
+            actions4.append(q)
+            p1 = multiprocessing.Process(target=perform_minimax, args=actions1)
+            p2 = multiprocessing.Process(target=perform_minimax, args=actions2)
+            p3 = multiprocessing.Process(target=perform_minimax, args=actions3)
+            p4 = multiprocessing.Process(target=perform_minimax, args=actions4)
+
+            p1.start()
+            p2.start()
+            p3.start()
+            p4.start()
+            p1.join()
+            p2.join()
+            p3.join()
+            p4.join()
+            # action_values = [(action, min_value(result(board, action), depth, alpha, beta)) for action in total_actions]
+            action_values = q.get()
             curr_max = action_values[0]
             for action in action_values[1:]:
                 if action[-1] > curr_max[-1]:
                     curr_max = action
             print()
             print(curr_max)
-            print(f"Moves Searched: {num_actions}")
             return curr_max[0]
-
         else:
-            for action in total_actions:
-                action_values.append((action, max_value(result(board, action), depth, alpha, beta)))
+            action_values = [(action, max_value(result(board, action), depth, alpha, beta)) for action in total_actions]
             print(action_values)
             curr_min = action_values[0]
             for action in action_values[1:]:
@@ -192,35 +220,79 @@ def minimax(board, depth):
             print(f"Moves Searched: {num_actions}")
             return curr_min[0]
 
-def max_value(board, depth, alpha, beta, depth_set=False):
+def perform_minimax(*actions):
+    global action_values
+    global num_actions
+    action_list = [action for action in actions]
+    q = action_list.pop()
+    board = action_list.pop()
+    # print(actions)
+    # print(action_list)
+    alpha = -10000
+    beta = 10000
+    for action in action_list:
+        curr_action = (action, min_value(result(board, action), 3, alpha, beta, action))
+        # print(curr_action)
+        action_values.append(curr_action)
+    q.put(action_values)
+
+
+def max_value(board, depth, alpha, beta):
     global num_actions
     if depth == 0:
         score = evaluation(board)
-        return evaluation(board)
-    for action in actions(board):
-        # print(action)
+        if score >= 9999:
+            score2 = evaluation(result(curr_board, minimax(curr_board, curr_depth - 1)))
+            if score2 >= 9999:
+                if curr_depth > 2:
+                    score3 = minimax(curr_board, curr_depth - 2)
+                    if score3 >= 9999:
+                        return score3
+                    else:
+                        return score2
+                return score2
+            else:
+                return score
+        return score
+    one_less_deep = depth - 1
+    for action in [mov for mov in board.legal_moves]:
         num_actions += 1
-        # if board.is_capture(action) and depth_set == False:
-        #     depth = 2
-        #     depth_set = True
-        alpha = max(alpha, min_value(result(board, action), depth-1, alpha, beta, depth_set))
-        # depth_set = False
+
+        alpha = max(alpha, min_value(result(board, action), one_less_deep, alpha, beta))
+
         if beta <= alpha:
             return alpha
     return alpha
 
-def min_value(board, depth, alpha, beta, depth_set=False):
+def min_value(board, depth, alpha, beta):
     global num_actions
     if depth == 0:
-        return evaluation(board)
-    for action in actions(board):
-    #     print(action)
+        score = evaluation(board)
+        if curr_depth > 2:
+            if score >= 9999:
+                score2 = evaluation(result(curr_board, minimax(curr_board, curr_depth - 1)))
+                if score2 >= 9999:
+                    if curr_depth > 3:
+                        score3 = evaluation(result(curr_board, minimax(curr_board, curr_depth - 2)))
+                        if score3 >= 9999:
+                            score4 = evaluation(result(curr_board, minimax(curr_board, curr_depth - 3)))
+                            if score4 >= 9999:
+                                return score4
+                            else:
+                                return score3
+                        else:
+                            return score2
+                    return score2
+                else:
+                    return score
+        return score
+    one_less_deep = depth - 1
+    for action in  [mov for mov in board.legal_moves]:
         num_actions += 1
-        # if board.is_capture(action) and depth_set == False:
-        #     depth = 2
-        #     depth_set = True
-        beta = min(beta, max_value(result(board, action), depth-1, alpha, beta, depth_set))
-        # depth_set = False
+
+
+        beta = min(beta, max_value(result(board, action), one_less_deep, alpha, beta))
+
         if beta <= alpha:
             return beta
     return beta
