@@ -200,9 +200,9 @@ def max_value(board, depth, alpha, beta, depth_set=False):
     for action in actions(board):
         # print(action)
         num_actions += 1
-        if board.is_capture(action) and depth_set == False:
-            depth = 2
-            depth_set = True
+        # if board.is_capture(action) and depth_set == False:
+        #     depth = 2
+        #     depth_set = True
         alpha = max(alpha, min_value(result(board, action), depth-1, alpha, beta, depth_set))
         # depth_set = False
         if beta <= alpha:
@@ -216,9 +216,9 @@ def min_value(board, depth, alpha, beta, depth_set=False):
     for action in actions(board):
     #     print(action)
         num_actions += 1
-        if board.is_capture(action) and depth_set == False:
-            depth = 2
-            depth_set = True
+        # if board.is_capture(action) and depth_set == False:
+        #     depth = 2
+        #     depth_set = True
         beta = min(beta, max_value(result(board, action), depth-1, alpha, beta, depth_set))
         # depth_set = False
         if beta <= alpha:

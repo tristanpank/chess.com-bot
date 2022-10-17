@@ -7,7 +7,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-s  = Service("/usr/local/bin/chromedriver")
+
+s = Service("C:/Users/trist/anaconda3/chromedriver")
 
 driver = webdriver.Chrome(service = s)
 
@@ -122,7 +123,7 @@ while board.is_checkmate() == False:
     print(board)
     if player(board) == ai_color:
         start_time = time.time()
-        move = minimax(board, 2)
+        move = minimax(board, 4)
         tmp = str(move)
         is_capture = board.is_capture(move)
         print(tmp)
@@ -133,7 +134,7 @@ while board.is_checkmate() == False:
         print("Time: " + str((total_time)))
     else:
         while True:
-            element = WebDriverWait(driver, 10).until(
+            element = WebDriverWait(driver, 100).until(
             EC.presence_of_element_located((By.XPATH, f'//*[@id="board-layout-sidebar"]/div/vertical-move-list/div[{move_num}]/div[@class=\'black node selected\']'))
             )
             last_move = driver.find_element(By.XPATH, f'//*[@id="board-layout-sidebar"]/div/vertical-move-list/div[{move_num}]/div[@class=\'black node selected\']')
