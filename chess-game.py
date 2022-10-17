@@ -63,7 +63,7 @@ driver.implicitly_wait(20)
 move_num = 0
 last_move = 0
 playing_robot = input('Playing robot?')
-deep = input('Depth: ')
+deep = int(input('Depth: '))
 if playing_robot == 'y':
     moves = '[@id="board-layout-sidebar"]/div'
     moves2 = 'board-vs-personalities'
