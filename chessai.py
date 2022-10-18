@@ -1,3 +1,4 @@
+from pickle import INST
 import chess
 import chess.polyglot
 from chess import Board
@@ -84,10 +85,16 @@ def result(board, action):
     return new_board
 
 # checks if game is over and returns massive score
-def evaluation(board):
+def evaluation(board:chess.Board):
     if board.is_stalemate():
         return 0
     elif board.is_insufficient_material():
+        return 0
+    elif board.can_claim_threefold_repetition():
+        print('Avoided Draw by Repetition!')
+        return -500
+    elif board.can_claim_fifty_moves():
+        print('Avoided 50 moves!')
         return 0
     elif board.is_checkmate():
         if board.turn:
