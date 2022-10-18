@@ -15,7 +15,7 @@ def main():
     global is_capture
     global driver
     global moves2
-    s = Service("/usr/local/bin/chromedriver")
+    s = Service("C:/Users/trist/anaconda3/chromedriver")
 
     driver = webdriver.Chrome(service = s)
 
@@ -107,7 +107,7 @@ def main():
             print(f"Approx Moves Searched: {approx_moves}")
             print("Time: " + str((total_time)))
             if approx_moves > 0:
-                speed = approx_moves / total_time
+                speed = approx_moves / (total_time+0.0001)
                 if 100000 > speed > best_speed:
                     best_speed = speed
                 if speed < worst_speed:
