@@ -15,7 +15,7 @@ def main():
     global is_capture
     global driver
     global moves2
-    s = Service("C:/Users/trist/anaconda3/chromedriver")
+    s = Service("/usr/local/bin/chromedriver")
 
     driver = webdriver.Chrome(service = s)
 
@@ -70,6 +70,7 @@ def main():
     move_num = 0
     last_move = 0
     playing_robot = input('Playing robot?')
+    cores = int(input('Number of cores? '))
     deep = int(input('Depth: '))
     if playing_robot == 'y':
         moves = '[@id="board-layout-sidebar"]/div'
@@ -93,7 +94,7 @@ def main():
         print(board)
         if player(board) == ai_color:
             start_time = time.time()
-            move = minimax(board, deep)
+            move = minimax(board, deep, cores)
             end_time = time.time()
             tmp = str(move)
             print(type(move))
