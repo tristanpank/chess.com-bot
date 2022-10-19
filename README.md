@@ -1,1 +1,7 @@
 # chess.com-bot
+
+A complete integration of the previous Chess-AI repo. Using the chess ai algorithm created previously, the code was integrated with a Selenium script that will automatically play against a bot of choice on Chess.com based on a given search depth input. The selenium script works by identifying the piece that was moved by the bot using a transcript div that chess.com provides on the right-hand side of the game page. That move is then sent to the chess ai algorithm which performs the minimax search and returns the ideal move. From there, selenium will take the move, and identify the square on the chess board to click and move the piece to. 
+
+With this algorithm, the AI was able to win up to 1500 elo against the corresponding chess.com bots. Originally, at a search depth of 3, the algorithm would take roughly 30-40 seconds to find a move, and could even take up to 70 seconds at certain points of the game. To increase the efficiency of the algorithm, multiprocessing was implemented using the Multiprocessing library in Python. With this library, instead of using a single Python process to search through the list of possible moves, the task was divided among 8 different Python processes, utilizing all 8 cores of the cpu. 
+
+Due to multiprocessing, the algorithm's efficiency increased by roughly 800%, with average search times being around 5 seconds, with peaks of around 15-20 seconds. This led to the bot being able to finish a game at a depth of 3 using only 1-2 minutes of searching time, instead of up to 15-20 minutes.
