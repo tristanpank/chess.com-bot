@@ -1,4 +1,3 @@
-from pickle import INST
 import chess
 import chess.polyglot
 from chess import Board
