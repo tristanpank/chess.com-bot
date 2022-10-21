@@ -13,6 +13,7 @@ def main():
     import multiprocessing
     from chessai import player, actions, result, evaluation, minimax, max_value, min_value, perform_minimax, board
     global is_capture
+    global en_passant
     global driver
     global moves2
     s = Service("./chromedriver/chromedriver")
@@ -94,12 +95,13 @@ def main():
         print(board)
         if player(board) == ai_color:
             start_time = time.time()
-            move = minimax(board, deep, cores)
+            move = minimax(board, deep, cores)[0]
             end_time = time.time()
             tmp = str(move)
             print(type(move))
             print(tmp)
             is_capture = board.is_capture(move)
+            en_passant = board.is_en_passant(move)
             move_num = moveto(tmp, move_num)
             board.push(move)
             total_time = round(end_time - start_time, 2)
@@ -149,8 +151,7 @@ def moveto(name, move_num):
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
     import multiprocessing
-    from chessai import player, actions, result, evaluation, minimax, max_value, min_value, perform_minimax, board
-    global is_capture
+    from chessai import player, actions, result, evaluation, minimax, max_value, min_value, perform_minimax, board, cont
     columns = {'a': 1, 'b': 2, 'c': 3, 'd': 4, 'e': 5, 'f': 6, 'g': 7, 'h': 8}
     if name[-1] == 'q':
         promote = True
@@ -184,9 +185,9 @@ def moveto(name, move_num):
     if not is_capture:
         search = driver.find_element(By.XPATH, value = f'//*[@id="{moves2}"]/div[@class=\'hint square-{end_location}\']')
     else:
-        try:
+        if not en_passant:
             search = driver.find_element(By.XPATH, value = f'//*[@id="{moves2}"]/div[@class=\'capture-hint square-{end_location}\']')
-        except:
+        else:
             search = driver.find_element(By.XPATH, value = f'//*[@id="{moves2}"]/div[@class=\'hint square-{end_location}\']')
     action = webdriver.common.action_chains.ActionChains(driver)
     action.move_to_element_with_offset(search, 0, 0)
