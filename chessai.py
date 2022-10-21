@@ -263,7 +263,7 @@ def minimax(board, depth, cores):
                         for action2 in result(board,action[0]).legal_moves:
                             if number == -150 or number == -9999 or number == 9999:
                                 number2 = evaluation(result(result(curr_board, action[0]), action2))
-                                if number2 < number:
+                                if number2 > number:
                                     number = number2
                             else:
                                 number2 = evaluation(result(result(curr_board, action[0]), action2))
@@ -271,11 +271,11 @@ def minimax(board, depth, cores):
                                     number = number2
                         if number == -150 or number == -9999 or number == 9999:
                             if number <= curr_min[-1]:
-                                curr_max = (action[0], number)
+                                curr_min = (action[0], number)
                             else:
                                 print(f'Avoided Allowing Forced Draw by {action} because {eval_2away}!')
                         else:
-                            curr_max = action
+                            curr_min = action
             print()
             print(curr_min)
             return curr_min
@@ -406,9 +406,14 @@ def perform_minimax(*actions):
     # print(action_list)
     alpha = -10000
     beta = 10000
-    for action in action_list:
-        curr_action = (action, min_value(result(board, action), curr_depth, alpha, beta))
-        action_values.append(curr_action)
+    if board.turn:
+        for action in action_list:
+            curr_action = (action, min_value(result(board, action), curr_depth, alpha, beta))
+            action_values.append(curr_action)
+    else:
+        for action in action_list:
+            curr_action = (action, max_value(result(board, action), curr_depth, alpha, beta))
+            action_values.append(curr_action)
     q.put(action_values)
 
 def max_value(board, depth, alpha, beta,):

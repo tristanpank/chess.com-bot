@@ -1,5 +1,6 @@
 
 driver = ""
+move_num = 0
 def main():
     import chess
     import time
@@ -16,6 +17,7 @@ def main():
     global en_passant
     global driver
     global moves2
+    global move_num
     s = Service("./chromedriver/chromedriver")
 
     driver = webdriver.Chrome(service = s)
@@ -85,9 +87,11 @@ def main():
 
     # Getting AI chess color
     while True:
-        #ai_color = input("AI Color (w or b): ").lower()
-        ai_color = 'w'
-        if ai_color == "w" or ai_color == "b":
+        ai_color = input('AI Color (w or b): ').lower()
+        if ai_color == 'w' or ai_color == 'b':
+            color = ai_color
+            if ai_color == 'b':
+                move_num = 1
             break
 
     while board.is_checkmate() == False:
@@ -102,7 +106,7 @@ def main():
             print(tmp)
             is_capture = board.is_capture(move)
             en_passant = board.is_en_passant(move)
-            move_num = moveto(tmp, move_num)
+            move_num = moveto(tmp, move_num, color)
             board.push(move)
             total_time = round(end_time - start_time, 2)
             game_time += total_time
@@ -120,19 +124,31 @@ def main():
                 print(f'Worst: {worst_speed}')
         else:
             while True:
-                element = WebDriverWait(driver, 100).until(
-
-                EC.presence_of_element_located((By.XPATH, f'//*{moves}/vertical-move-list/div[{move_num}]/div[@class=\'black node selected\']'))
-
-                )
-                last_move = driver.find_element(By.XPATH, f'//*{moves}/vertical-move-list/div[{move_num}]/div[@class=\'black node selected\']')
-                print(last_move.text)
-                human_move = last_move.text
-                try:
-                    board.push_san(human_move)
-                except:
-                    continue
-                break
+                if ai_color == 'w':
+                    element = WebDriverWait(driver, 100).until(
+                    EC.presence_of_element_located((By.XPATH, f'//*{moves}/vertical-move-list/div[{move_num}]/div[@class=\'black node selected\']'))
+                    )
+                    last_move = driver.find_element(By.XPATH, f'//*{moves}/vertical-move-list/div[{move_num}]/div[@class=\'black node selected\']')
+                    print(last_move.text)
+                    human_move = last_move.text
+                    try:
+                        board.push_san(human_move)
+                    except:
+                        continue
+                    break
+                else:
+                    element = WebDriverWait(driver, 100).until(
+                    EC.presence_of_element_located((By.XPATH, f'//*{moves}/vertical-move-list/div[{move_num}]/div[@class=\'white node selected\']'))
+                    )
+                    last_move = driver.find_element(By.XPATH, f'//*{moves}/vertical-move-list/div[{move_num}]/div[@class=\'white node selected\']')
+                    print(last_move.text)
+                    human_move = last_move.text
+                    try:
+                        board.push_san(human_move)
+                    except:
+                        continue
+                    break
+                
 
     print("Checkmate")
     print(board)
@@ -140,7 +156,7 @@ def main():
     input('Press Enter to Quit')
     driver.quit()
 
-def moveto(name, move_num):
+def moveto(name, move_num, color):
     import chess
     import time
     import math
@@ -178,9 +194,9 @@ def moveto(name, move_num):
     start_location = str(columns[start_location[0]]) + start_location[1]
     print(start_location, end_location)
     try:
-        search = driver.find_element(By.XPATH, value = f'//*[@id="{moves2}"]/div[@class=\'piece w{piece} square-{start_location}\']')
+        search = driver.find_element(By.XPATH, value = f'//*[@id="{moves2}"]/div[@class=\'piece {color}{piece} square-{start_location}\']')
     except: 
-        search = driver.find_element(By.XPATH, value = f'//*[@id="{moves2}"]/div[@class=\'piece square-{start_location} w{piece}\']')
+        search = driver.find_element(By.XPATH, value = f'//*[@id="{moves2}"]/div[@class=\'piece square-{start_location} {color}{piece}\']')
     search.click()
     if not is_capture:
         search = driver.find_element(By.XPATH, value = f'//*[@id="{moves2}"]/div[@class=\'hint square-{end_location}\']')
