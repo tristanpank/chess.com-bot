@@ -299,28 +299,47 @@ def minimax(board, depth, cores):
             for action in action_values:
                 if action[-1] >= curr_max[-1]:
                     direct_eval = evaluation(result(curr_board, action[0]))
-                    if direct_eval != None:
+                    if direct_eval == -150 or direct_eval == -9999 or direct_eval == 9999:
                         if direct_eval >= curr_max[-1]:
-                            curr_max = action
                             if direct_eval < 9000:
-                                eval_2away = min_value(result(board, action[0]), 1, alpha, beta)
+                                eval_2away = min_value(result(curr_board, action[0]), 1, alpha, beta)
                                 number = None
                                 for action2 in result(board,action[0]).legal_moves:
                                     if number != None:
                                         number2 = evaluation(result(result(curr_board, action[0]), action2[0]))
-                                        if number2 < number:
-                                            number = number2
-                                if number != None:
-                                    if number >=curr_max[:-1]:
-                                        curr_max = action
+                                        if number2 == -150 or number2 == -9999 or number2 == 9999:
+                                            if number2 < number:
+                                                number = number2
+                                if number == -150 or number == -9999 or number == 9999:
+                                    if number >= curr_max[:-1]:
+                                        curr_max = (action[0], min(number2, direct_eval))
                                     else:
-                                        print(f'Avoided Allowing Forced Draw by {eval_2away}!')
+                                        print(f'Avoided Allowing Forced Draw by {eval_2away} because {number}!')
                                 else:
-                                    curr_max = action
+                                    curr_max = (action[0], direct_eval)
+                            else:
+                                curr_max = (action[0], direct_eval)
                         else:
-                            print(f'Avoided Stalemating by {action}!')
+                            print(f'Avoided Stalemating by {action} because {direct_eval}!')
                     else:
-                        curr_max = action
+                        eval_2away = min_value(result(curr_board, action[0]), 1, alpha, beta)
+                        number = None
+                        for action2 in result(board,action[0]).legal_moves:
+                            if number == -150 or number == -9999 or number == 9999:
+                                number2 = evaluation(result(result(curr_board, action[0]), action2))
+                                if number2 < number:
+                                    number = number2
+                            else:
+                                number2 = evaluation(result(result(curr_board, action[0]), action2))
+                                if number2 == -150 or number2 == -9999 or number2 == 9999:
+                                    number = number2
+                        if number == -150 or number == -9999 or number == 9999:
+                            if number >= curr_max[-1]:
+                                curr_max = (action[0], number)
+                            else:
+                                print(f'Avoided Allowing Forced Draw by {eval_2away}!')
+                        else:
+                            curr_max = action
 
 
 
