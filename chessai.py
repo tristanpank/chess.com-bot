@@ -3,7 +3,6 @@ import chess
 import chess.polyglot
 from chess import Board
 import multiprocessing
-
 board = Board()
 pawntable = [
     0, 0, 0, 0, 0, 0, 0, 0,
@@ -87,15 +86,13 @@ def result(board, action):
 # checks if game is over and returns massive score
 def evaluation(board:chess.Board):
     if board.is_stalemate():
-        return 0
+        return -150
     elif board.is_insufficient_material():
-        return 0
-    elif board.can_claim_threefold_repetition():
-        print('Avoided Draw by Repetition!')
-        return -500
+        return -150
+    elif board.is_repetition():
+        return -150
     elif board.can_claim_fifty_moves():
-        print('Avoided 50 moves!')
-        return 0
+        return -150
     elif board.is_checkmate():
         if board.turn:
             return -9999
@@ -296,10 +293,61 @@ def minimax(board, depth, cores):
                 action_values += q.get()
                 action_values += q.get()
             print(action_values)
-            curr_max = action_values[0]
-            for action in action_values[1:]:
-                if action[-1] > curr_max[-1]:
-                    curr_max = action
+            curr_max = [-10000]
+            alpha = -10000
+            beta = 10000
+            for action in action_values:
+                if action[-1] >= curr_max[-1]:
+                    direct_eval = evaluation(result(curr_board, action[0]))
+                    if direct_eval != None:
+                        if direct_eval >= curr_max[-1]:
+                            curr_max = action
+                            if direct_eval < 9000:
+                                eval_2away = min_value(result(board, action[0]), 1, alpha, beta)
+                                number = None
+                                for action2 in result(board,action[0]).legal_moves:
+                                    if number != None:
+                                        number2 = evaluation(result(result(curr_board, action[0]), action2[0]))
+                                        if number2 < number:
+                                            number = number2
+                                if number != None:
+                                    if number >=curr_max[:-1]:
+                                        curr_max = action
+                                    else:
+                                        print(f'Avoided Allowing Forced Draw by {eval_2away}!')
+                                else:
+                                    curr_max = action
+                        else:
+                            print(f'Avoided Stalemating by {action}!')
+                    else:
+                        curr_max = action
+
+
+
+
+
+                    # action2 = min(max_value(result(curr_board, action[0]), 1))
+                    # if action2 != None:
+                    #     if action2 >= curr_max[-1]:
+                    #         eval = evaluation(result(curr_board, action[0]))
+                    #         if eval != None:
+                    #             if eval >= curr_max[-1]:
+                    #                 curr_max = (action[0], min(eval, action2))
+                    #             else:
+                    #                 print(f'Avoided drawing by repetition (1 move)')
+                    #         else:
+                    #             curr_max = (action[0], min(eval, action2))
+                    #     else:
+                    #         print(f'Avoided blundering forced draw!(2 move){action}')
+                    # else:
+                    #     eval = evaluation(result(curr_board, action[0]))
+                    #     if eval != None:
+                    #         if eval >= curr_max[-1]:
+                    #             curr_max = (action[0], min(eval, action2))
+                    #         else:
+                    #             print(f'Avoided drawing by repetition (1 move)')
+                    #     else:
+                    #         curr_max = action
             print()
             print(curr_max)
             return curr_max[0]
@@ -355,7 +403,6 @@ def perform_minimax(*actions):
     beta = 10000
     for action in action_list:
         curr_action = (action, min_value(result(board, action), curr_depth, alpha, beta))
-        # print(curr_action)
         action_values.append(curr_action)
     q.put(action_values)
 
