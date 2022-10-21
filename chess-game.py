@@ -15,7 +15,7 @@ def main():
     global is_capture
     global driver
     global moves2
-    s = Service("/usr/local/bin/chromedriver")
+    s = Service("./chromedriver/chromedriver")
 
     driver = webdriver.Chrome(service = s)
 
