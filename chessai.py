@@ -1,10 +1,13 @@
+
 import chess
 import chess.polyglot
-from chess import Board
+from chess import Board, square_mirror
 import multiprocessing
+from numba import jit
+import time
 board = Board()
 num_cores = 1
-pawntable = [
+pawntable = (
     0, 0, 0, 0, 0, 0, 0, 0,
     5, 10, 10, -20, -20, 10, 10, 5,
     5, -5, -10, 0, 0, -10, -5, 5,
@@ -12,9 +15,9 @@ pawntable = [
     5, 5, 10, 25, 25, 10, 5, 5,
     10, 10, 20, 30, 30, 20, 10, 10,
     50, 50, 50, 50, 50, 50, 50, 50,
-    0, 0, 0, 0, 0, 0, 0, 0]
+    0, 0, 0, 0, 0, 0, 0, 0)
 
-knightstable = [
+knightstable = (
     -50, -40, -30, -30, -30, -30, -40, -50,
     -40, -20, 0, 5, 5, 0, -20, -40,
     -30, 5, 10, 15, 15, 10, 5, -30,
@@ -22,9 +25,9 @@ knightstable = [
     -30, 5, 15, 20, 20, 15, 5, -30,
     -30, 0, 10, 15, 15, 10, 0, -30,
     -40, -20, 0, 0, 0, 0, -20, -40,
-    -50, -40, -30, -30, -30, -30, -40, -50]
+    -50, -40, -30, -30, -30, -30, -40, -50)
 
-bishopstable = [
+bishopstable = (
     -20, -10, -10, -10, -10, -10, -10, -20,
     -10, 5, 0, 0, 0, 0, 5, -10,
     -10, 10, 10, 10, 10, 10, 10, -10,
@@ -32,9 +35,9 @@ bishopstable = [
     -10, 5, 5, 10, 10, 5, 5, -10,
     -10, 0, 5, 10, 10, 5, 0, -10,
     -10, 0, 0, 0, 0, 0, 0, -10,
-    -20, -10, -10, -10, -10, -10, -10, -20]
+    -20, -10, -10, -10, -10, -10, -10, -20)
 
-rookstable = [
+rookstable = (
     0, 0, 0, 5, 5, 0, 0, 0,
     -5, 0, 0, 0, 0, 0, 0, -5,
     -5, 0, 0, 0, 0, 0, 0, -5,
@@ -42,9 +45,9 @@ rookstable = [
     -5, 0, 0, 0, 0, 0, 0, -5,
     -5, 0, 0, 0, 0, 0, 0, -5,
     5, 10, 10, 10, 10, 10, 10, 5,
-    0, 0, 0, 0, 0, 0, 0, 0]
+    0, 0, 0, 0, 0, 0, 0, 0)
 
-queenstable = [
+queenstable =(
     -20, -10, -10, -5, -5, -10, -10, -20,
     -10, 0, 0, 0, 0, 0, 0, -10,
     -10, 5, 5, 5, 5, 5, 0, -10,
@@ -52,9 +55,9 @@ queenstable = [
     -5, 0, 5, 5, 5, 5, 0, -5,
     -10, 0, 5, 5, 5, 5, 0, -10,
     -10, 0, 0, 0, 0, 0, 0, -10,
-    -20, -10, -10, -5, -5, -10, -10, -20]
+    -20, -10, -10, -5, -5, -10, -10, -20)
 
-kingstable = [
+kingstable = (
     20, 30, 10, 0, 0, 10, 30, 20,
     20, 20, 0, 0, 0, 0, 20, 20,
     -10, -20, -20, -20, -20, -20, -20, -10,
@@ -62,22 +65,20 @@ kingstable = [
     -30, -40, -40, -50, -50, -40, -40, -30,
     -30, -40, -40, -50, -50, -40, -40, -30,
     -30, -40, -40, -50, -50, -40, -40, -30,
-    -30, -40, -40, -50, -50, -40, -40, -30]
+    -30, -40, -40, -50, -50, -40, -40, -30)
 
 cont = True
 num_actions = 0
 action_values = []
-def player(board):
+
+def player(board: chess.Board):
     if board.turn == False:
         return "b"
     elif board.turn == True:
         return "w"
 
 def actions(board):
-    total_actions = []
-    for move in board.legal_moves:
-        total_actions.append(move)
-    return total_actions
+    return [move for move in board.legal_moves]
 
 def result(board, action):
     new_board = board.copy()
@@ -86,59 +87,27 @@ def result(board, action):
 
 # checks if game is over and returns massive score
 def evaluation(board:chess.Board):
-    if board.is_stalemate():
-        return -150
-    elif board.is_insufficient_material():
-        return -150
-    elif board.is_repetition():
-        return -150
-    elif board.can_claim_fifty_moves():
-        return -150
+    if board.is_stalemate() or board.is_insufficient_material() or board.is_repetition() or board.can_claim_fifty_moves():
+        if board.turn:
+            stalemate_value = -150
+        else:
+            stalemate_value = 150
+        return stalemate_value
     elif board.is_checkmate():
         if board.turn:
             return -9999
         else:
             return 9999
     # calculates total number of each piece
-    wp = len(board.pieces(chess.PAWN, chess.WHITE))
-    bp = len(board.pieces(chess.PAWN, chess.BLACK))
-    wn = len(board.pieces(chess.KNIGHT, chess.WHITE))
-    bn = len(board.pieces(chess.KNIGHT, chess.BLACK))
-    wb = len(board.pieces(chess.BISHOP, chess.WHITE))
-    bb = len(board.pieces(chess.BISHOP, chess.BLACK))
-    wr = len(board.pieces(chess.ROOK, chess.WHITE))
-    br = len(board.pieces(chess.ROOK, chess.BLACK))
-    wq = len(board.pieces(chess.QUEEN, chess.WHITE))
-    bq = len(board.pieces(chess.QUEEN, chess.BLACK))
+    wp, bp, wn, bn, wb, bb, wr, br, wq, bq = board.pieces(chess.PAWN, chess.WHITE), board.pieces(chess.PAWN, chess.BLACK), board.pieces(chess.KNIGHT, chess.WHITE), board.pieces(chess.KNIGHT, chess.BLACK), board.pieces(chess.BISHOP, chess.WHITE), board.pieces(chess.BISHOP, chess.BLACK), board.pieces(chess.ROOK, chess.WHITE), board.pieces(chess.ROOK, chess.BLACK), board.pieces(chess.QUEEN, chess.WHITE), board.pieces(chess.QUEEN, chess.BLACK)
     # calculates score (for white)
     # based on num of pieces they have over black
-    material = 100 * (wp - bp) + 320 * (wn - bn) + 330 * (wb - bb) + 500 * (wr - br) + 900 * (wq - bq)
     # mathces position of each piece type to position score table
     # positive score in favor for white
-    pawnsq = sum([pawntable[i] for i in board.pieces(chess.PAWN, chess.WHITE)])
-    pawnsq = pawnsq + sum([-pawntable[chess.square_mirror(i)]
-        for i in board.pieces(chess.PAWN, chess.BLACK)])
-    
-    knightsq = sum([knightstable[i] for i in board.pieces(chess.KNIGHT, chess.WHITE)])
-    knightsq = knightsq + sum([-knightstable[chess.square_mirror(i)] 
-        for i in board.pieces(chess.KNIGHT, chess.BLACK)])
-    
-    bishopsq = sum([bishopstable[i] for i in board.pieces(chess.BISHOP, chess.WHITE)])
-    bishopsq = bishopsq + sum([-bishopstable[chess.square_mirror(i)]
-        for i in board.pieces(chess.BISHOP, chess.BLACK)])
-    
-    rooksq = sum([rookstable[i] for i in board.pieces(chess.ROOK, chess.WHITE)])
-    rooksq = rooksq + sum([-rookstable[chess.square_mirror(i)]
-        for i in board.pieces(chess.ROOK, chess.BLACK)])
-    
-    queensq = sum([queenstable[i] for i in board.pieces(chess.QUEEN, chess.WHITE)])
-    queensq = queensq + sum([-queenstable[chess.square_mirror(i)]
-        for i in board.pieces(chess.QUEEN, chess.BLACK)])
-
-    kingsq = sum([kingstable[i] for i in board.pieces(chess.KING, chess.WHITE)])
-    kingsq = kingsq + sum([-kingstable[chess.square_mirror(i)]
-        for i in board.pieces(chess.KING, chess.BLACK)])
+    pawnsq, knightsq, bishopsq, rooksq, queensq, kingsq = sum([pawntable[i] for i in wp]) - sum([pawntable[square_mirror(i)] for i in bp]), sum([knightstable[i] for i in wn]) - sum([knightstable[square_mirror(i)] for i in bn]), sum([bishopstable[i] for i in wb]) - sum([bishopstable[square_mirror(i)] for i in bb]), sum([rookstable[i] for i in wr]) - sum([rookstable[square_mirror(i)] for i in br]), sum([queenstable[i] for i in wq]) - sum([queenstable[square_mirror(i)] for i in bq]), sum([kingstable[i] for i in board.pieces(chess.KING, chess.WHITE)]) - sum([kingstable[square_mirror(i)] for i in board.pieces(chess.KING, chess.BLACK)])
     # combines total_piece and positional scores
+    wp, bp, wn, bn, wb, bb, wr, br, wq, bq = len(wp), len(bp), len(wn), len(bn), len(wb), len(bb), len(wr), len(br), len(wq), len(bq)
+    material = 100 * (wp - bp) + 320 * (wn - bn) + 330 * (wb - bb) + 500 * (wr - br) + 900 * (wq - bq)
     score = material + pawnsq + knightsq + bishopsq + rooksq + queensq + kingsq
     return score
 
@@ -150,10 +119,8 @@ def minimax(board, depth, cores):
     global curr_board
     global curr_depth
     global num_cores
-    num_cores = cores
-    curr_board = board
-    curr_depth = depth
-    cont = True
+    global stalemate_value
+    curr_board, curr_depth, num_cores, cont = board, depth, cores, 0
     global num_actions
     try:
         move = chess.polyglot.MemoryMappedReader(r"./openings/human.bin").weighted_choice(board).move
@@ -174,6 +141,7 @@ def minimax(board, depth, cores):
         num_of_actions = len(total_actions)
         action_values = core_choice(cores, num_of_actions, total_actions)
         if board.turn:
+            stalemate_value = -150
             print(action_values)
             curr_max = [-10000]
             alpha = -10000
@@ -182,7 +150,7 @@ def minimax(board, depth, cores):
             for action in action_values:
                 if action[-1] >= curr_max[-1]:
                     direct_eval = evaluation(result(curr_board, action[0]))
-                    if direct_eval == -150 or direct_eval == -9999:
+                    if direct_eval == -150 or direct_eval == -9999 or direct_eval == 9999:
                         if direct_eval >= curr_max[-1]:
                             if direct_eval < 9000:
                                 eval_2away = min_value(result(curr_board, action[0]), 1, alpha, beta)
@@ -201,32 +169,36 @@ def minimax(board, depth, cores):
                                 else:
                                     curr_max = (action[0], direct_eval)
                             else:
-                                curr_max = (action[0], direct_eval)
+                                curr_max = (action[0], direct_eval + 5)
                         else:
                             print(f'Avoided Stalemating by {action} because {direct_eval}!')
                     else:
                         eval_2away = min_value(result(curr_board, action[0]), 1, alpha, beta)
                         number = None
-                        for action2 in result(board,action[0]).legal_moves:
-                            if number == -150 or number == -9999:
-                                number2 = evaluation(result(result(curr_board, action[0]), action2))
-                                if number2 < number:
-                                    number = number2
-                            else:
-                                number2 = evaluation(result(result(curr_board, action[0]), action2))
-                                if number2 == -150 or number2 == -9999:
-                                    number = number2
-                        if number == -150 or number == -9999:
-                            if number >= curr_max[-1]:
-                                curr_max = (action[0], number)
-                            else:
-                                print(f'Avoided Allowing Forced Draw by {action} because {eval_2away}!')
+                        if eval_2away > 9000:
+                            curr_max = (action[0], eval_2away + 4)
                         else:
-                            curr_max = action
+                            for action2 in result(board,action[0]).legal_moves:
+                                if number == -150 or number == -9999:
+                                    number2 = evaluation(result(result(curr_board, action[0]), action2))
+                                    if number2 < number:
+                                        number = number2
+                                else:
+                                    number2 = evaluation(result(result(curr_board, action[0]), action2))
+                                    if number2 == -150 or number2 == -9999:
+                                        number = number2
+                            if number == -150 or number == -9999:
+                                if number >= curr_max[-1]:
+                                    curr_max = (action[0], number)
+                                else:
+                                    print(f'Avoided Allowing Forced Draw by {action} because {eval_2away}!')
+                            else:
+                                curr_max = action
             print()
             print(curr_max)
             return curr_max
         else:
+            stalemate_value = 150
             print(action_values)
             curr_min = [10000]
             alpha = -10000
@@ -235,7 +207,7 @@ def minimax(board, depth, cores):
             for action in action_values:
                 if action[-1] <= curr_min[-1]:
                     direct_eval = evaluation(result(curr_board, action[0]))
-                    if direct_eval == -150 or direct_eval == -9999 or direct_eval == 9999:
+                    if direct_eval == -150 or direct_eval == 9999:
                         if direct_eval <= curr_min[-1]:
                             if direct_eval < 9000:
                                 eval_2away = max_value(result(curr_board, action[0]), 1, alpha, beta)
@@ -243,10 +215,10 @@ def minimax(board, depth, cores):
                                 for action2 in result(board,action[0]).legal_moves:
                                     if number != None:
                                         number2 = evaluation(result(result(curr_board, action[0]), action2[0]))
-                                        if number2 == -150 or number2 == -9999 or number2 == 9999:
+                                        if number2 == -150 or number2 == 9999:
                                             if number2 > number:
                                                 number = number2
-                                if number == -150 or number == -9999 or number == 9999:
+                                if number == -150 or number == 9999:
                                     if number <= curr_min[-1]:
                                         curr_min = (action[0], min(number2, direct_eval))
                                     else:
@@ -261,15 +233,15 @@ def minimax(board, depth, cores):
                         eval_2away = min_value(result(curr_board, action[0]), 1, alpha, beta)
                         number = None
                         for action2 in result(board,action[0]).legal_moves:
-                            if number == -150 or number == -9999 or number == 9999:
+                            if number == -150 or number == 9999:
                                 number2 = evaluation(result(result(curr_board, action[0]), action2))
                                 if number2 > number:
                                     number = number2
                             else:
                                 number2 = evaluation(result(result(curr_board, action[0]), action2))
-                                if number2 == -150 or number2 == -9999 or number2 == 9999:
+                                if number2 == -150 or number2 == 9999:
                                     number = number2
-                        if number == -150 or number == -9999 or number == 9999:
+                        if number == -150 or number == 9999:
                             if number <= curr_min[-1]:
                                 curr_min = (action[0], number)
                             else:
@@ -317,6 +289,10 @@ def core_choice(cores, num_of_actions, total_actions):
         actions2.append(curr_depth)
         actions3.append(curr_depth)
         actions4.append(curr_depth)
+        actions1.append(cont)
+        actions2.append(cont)
+        actions3.append(cont)
+        actions4.append(cont)
         p1 = multiprocessing.Process(target=perform_minimax, args=actions1)
         p2 = multiprocessing.Process(target=perform_minimax, args=actions2)
         p3 = multiprocessing.Process(target=perform_minimax, args=actions3)
@@ -354,6 +330,14 @@ def core_choice(cores, num_of_actions, total_actions):
         actions6.append(curr_depth)
         actions7.append(curr_depth)
         actions8.append(curr_depth)
+        actions1.append(cont)
+        actions2.append(cont)
+        actions3.append(cont)
+        actions4.append(cont)
+        actions5.append(cont)
+        actions6.append(cont)
+        actions7.append(cont)
+        actions8.append(cont)
         p1 = multiprocessing.Process(target=perform_minimax, args=actions1)
         p2 = multiprocessing.Process(target=perform_minimax, args=actions2)
         p3 = multiprocessing.Process(target=perform_minimax, args=actions3)
@@ -396,9 +380,10 @@ def core_choice(cores, num_of_actions, total_actions):
         action_values += q.get()
     return action_values
 
+
 def perform_minimax(*actions):
-    global num_actions
     action_list = [action for action in actions]
+    conts = action_list.pop()
     curr_depth = action_list.pop()
     q = action_list.pop()
     board = action_list.pop()
@@ -407,18 +392,12 @@ def perform_minimax(*actions):
     alpha = -10000
     beta = 10000
     if board.turn:
-        for action in action_list:
-            curr_action = (action, min_value(result(board, action), curr_depth, alpha, beta))
-            action_values.append(curr_action)
+        action_values = [(action, min_value(result(board, action), curr_depth, alpha, beta, conts)) for action in action_list]
     else:
-        for action in action_list:
-            curr_action = (action, max_value(result(board, action), curr_depth, alpha, beta))
-            action_values.append(curr_action)
+        action_values = [(action, max_value(result(board, action), curr_depth, alpha, beta, conts)) for action in action_list]
     q.put(action_values)
 
-def max_value(board, depth, alpha, beta,):
-    global num_actions
-    global cont
+def max_value(board, depth, alpha, beta, conts = 2):
     if depth == 0:
         score = evaluation(board)
         if curr_depth >= 2:
@@ -444,19 +423,26 @@ def max_value(board, depth, alpha, beta,):
         else:
             return score
     one_less_deep = depth - 1
+    temp = conts
     for action in board.legal_moves:
-        if one_less_deep == 0:
-            if cont and (board.is_capture(action) or board.gives_check(action)):
+        if one_less_deep == 0 and temp <= 1:
+            if board.is_capture(action) or board.gives_check(action):
                 one_less_deep += 1
-                cont = False
-        alpha = max(alpha, min_value(result(board, action), one_less_deep, alpha, beta))
+                conts += 1
+                #print(action, conts)
+            # else:
+            #     res = result(board,action)
+            #     for square in res.attacks(action.to_square):
+            #         if res.piece_type_at(square) != None and  res.piece_type_at(square) > 1:
+            #             one_less_deep += 1
+            #             conts += 1
+            #             break
+        alpha = max(alpha, min_value(result(board, action), one_less_deep, alpha, beta, conts))
         if beta <= alpha:
             return alpha
     return alpha
 
-def min_value(board, depth, alpha, beta):
-    global num_actions
-    global cont
+def min_value(board, depth, alpha, beta, conts = 2):
     if depth == 0:
         score = evaluation(board)
         if curr_depth >= 2:
@@ -480,12 +466,21 @@ def min_value(board, depth, alpha, beta):
                     return score
         return score
     one_less_deep = depth - 1
+    temp = conts
     for action in board.legal_moves:
-        if one_less_deep == 0:
-            if cont and (board.is_capture(action) or board.gives_check(action)):
+        if one_less_deep == 0 and temp <= 1:
+            if board.is_capture(action) or board.gives_check(action):
                 one_less_deep += 1
-                cont = False
-        beta = min(beta, max_value(result(board, action), one_less_deep, alpha, beta))
+                conts += 1
+                #print(action, conts)
+            # else:
+            #     res = result(board,action)
+            #     for square in res.attacks(action.to_square):
+            #         if res.piece_type_at(square) != None and res.piece_type_at(square) > 1:
+            #             one_less_deep += 1
+            #             conts += 1
+            #             break
+        beta = min(beta, max_value(result(board, action), one_less_deep, alpha, beta, conts))
         if beta <= alpha:
             return beta
     return beta
