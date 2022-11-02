@@ -3,8 +3,6 @@ import chess
 import chess.polyglot
 from chess import Board, square_mirror
 import multiprocessing
-from numba import jit
-import time
 board = Board()
 num_cores = 1
 pawntable = (
@@ -120,7 +118,7 @@ def minimax(board, depth, cores):
     global curr_depth
     global num_cores
     global stalemate_value
-    curr_board, curr_depth, num_cores, cont = board, depth, cores, 0
+    curr_board, curr_depth, num_cores, cont = board, depth, cores, 1
     global num_actions
     try:
         move = chess.polyglot.MemoryMappedReader(r"./openings/human.bin").weighted_choice(board).move

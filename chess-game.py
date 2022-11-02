@@ -2,16 +2,13 @@
 driver = ""
 move_num = 0
 def main():
-    import chess
     import time
     import math
     from selenium import webdriver
     from selenium.webdriver.common.by import By
     from selenium.webdriver.chrome.service import Service
-    from selenium.webdriver.common.keys import Keys
-    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support.wait import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
-    import multiprocessing
     from chessai import player, actions, result, evaluation, minimax, max_value, min_value, perform_minimax, board
     global is_capture
     global en_passant
@@ -125,7 +122,7 @@ def main():
         else:
             while True:
                 if ai_color == 'w':
-                    element = WebDriverWait(driver, 100).until(
+                    element = WebDriverWait(driver, 1000).until(
                     EC.presence_of_element_located((By.XPATH, f'//*{moves}/vertical-move-list/div[{move_num}]/div[@class=\'black node selected\']'))
                     )
                     last_move = driver.find_element(By.XPATH, f'//*{moves}/vertical-move-list/div[{move_num}]/div[@class=\'black node selected\']')
@@ -137,7 +134,7 @@ def main():
                         continue
                     break
                 else:
-                    element = WebDriverWait(driver, 100).until(
+                    element = WebDriverWait(driver, 1000).until(
                     EC.presence_of_element_located((By.XPATH, f'//*{moves}/vertical-move-list/div[{move_num}]/div[@class=\'white node selected\']'))
                     )
                     last_move = driver.find_element(By.XPATH, f'//*{moves}/vertical-move-list/div[{move_num}]/div[@class=\'white node selected\']')
@@ -158,15 +155,11 @@ def main():
 
 def moveto(name, move_num, color):
     import chess
-    import time
-    import math
     from selenium import webdriver
     from selenium.webdriver.common.by import By
     from selenium.webdriver.chrome.service import Service
-    from selenium.webdriver.common.keys import Keys
-    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support.wait import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
-    import multiprocessing
     from chessai import player, actions, result, evaluation, minimax, max_value, min_value, perform_minimax, board, cont
     columns = {'a': 1, 'b': 2, 'c': 3, 'd': 4, 'e': 5, 'f': 6, 'g': 7, 'h': 8}
     if name[-1] == 'q':
